@@ -3,17 +3,53 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const data = [
-  { date: "01/01", balance: 12500 },
-  { date: "05/01", balance: 13200 },
-  { date: "10/01", balance: 11800 },
-  { date: "15/01", balance: 14500 },
-  { date: "20/01", balance: 13900 },
-  { date: "25/01", balance: 15200 },
-  { date: "30/01", balance: 15420 },
-]
+
+import { useEffect, useState } from "react"
+
+interface BalancePoint {
+  date: string
+  balance: number
+}
 
 export function BalanceEvolutionChart() {
+
+  const [data, setData] = useState<BalancePoint[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchBalanceEvolution() {
+      setLoading(true)
+      try {
+        // Buscar todas as transações do ano atual
+        const now = new Date()
+        const from = `${now.getFullYear()}-01-01`
+        const to = `${now.getFullYear()}-12-31`
+        const response = await fetch(`/api/transactions?from=${from}&to=${to}`)
+        const transactions = await response.json()
+
+        // Agrupar por dia e pegar o saldo do fim do dia
+        const dailyMap: { [date: string]: number } = {}
+        if (Array.isArray(transactions)) {
+          transactions.forEach((tx: any) => {
+            if (tx.balance != null && tx.date) {
+              dailyMap[tx.date] = tx.balance
+            }
+          })
+        }
+        // Ordenar por data
+        const points: BalancePoint[] = Object.entries(dailyMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, balance]) => ({ date: date.slice(5).split("-").reverse().join("/"), balance }))
+        setData(points)
+      } catch (e) {
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchBalanceEvolution()
+  }, [])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",

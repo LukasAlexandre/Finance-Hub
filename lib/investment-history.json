@@ -1,0 +1,7 @@
+[
+	{ "month": "04/25", "stocks": 0, "funds": 316.05, "fixedIncome": 0 },
+	{ "month": "05/25", "stocks": 152.15, "funds": 157.42, "fixedIncome": 150.00 },
+	{ "month": "06/25", "stocks": 307.70, "funds": 185.60, "fixedIncome": 150.00 },
+	{ "month": "07/25", "stocks": 210.00, "funds": 686.20, "fixedIncome": 600.00 },
+	{ "month": "08/25", "stocks": 0, "funds": 2765.37, "fixedIncome": 600.00 }
+]

@@ -1,0 +1,22 @@
+// Prisma schema for FinanceHub asset control
+// Run: npx prisma migrate dev --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Asset {
+  id           Int      @id @default(autoincrement())
+  type         String
+  ticker       String?
+  quantity     Float
+  price        Float
+  total        Float
+  purchaseDate DateTime
+  createdAt    DateTime @default(now())
+}

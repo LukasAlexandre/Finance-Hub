@@ -3,15 +3,58 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const data = [
-  { month: "Set", income: 8500, expenses: 3200 },
-  { month: "Out", income: 8500, expenses: 3800 },
-  { month: "Nov", income: 9200, expenses: 3100 },
-  { month: "Dez", income: 8500, expenses: 4200 },
-  { month: "Jan", income: 8500, expenses: 3200 },
-]
+
+import { useEffect, useState } from "react"
+
+interface MonthData {
+  month: string
+  income: number
+  expenses: number
+}
 
 export function IncomeExpenseChart() {
+
+  const [data, setData] = useState<MonthData[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchIncomeExpense() {
+      setLoading(true)
+      try {
+        // Buscar todas as transações do ano atual
+        const now = new Date()
+        const from = `${now.getFullYear()}-01-01`
+        const to = `${now.getFullYear()}-12-31`
+        const response = await fetch(`/api/transactions?from=${from}&to=${to}`)
+        const transactions = await response.json()
+
+        // Agrupar por mês
+        const monthMap: { [month: string]: { income: number; expenses: number } } = {}
+        if (Array.isArray(transactions)) {
+          transactions.forEach((tx: any) => {
+            if (tx.amount != null && tx.date) {
+              const [year, month] = tx.date.split("-")
+              const key = `${month}/${year.slice(2)}`
+              if (!monthMap[key]) monthMap[key] = { income: 0, expenses: 0 }
+              if (tx.amount > 0) monthMap[key].income += tx.amount
+              else monthMap[key].expenses += Math.abs(tx.amount)
+            }
+          })
+        }
+        // Ordenar por mês
+        const points: MonthData[] = Object.entries(monthMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([month, { income, expenses }]) => ({ month, income, expenses }))
+        setData(points)
+      } catch (e) {
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchIncomeExpense()
+  }, [])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",

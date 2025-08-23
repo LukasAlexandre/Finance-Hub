@@ -67,7 +67,7 @@ export function ExpensePieChart() {
           transactions.forEach((transaction: any) => {
             // Apenas gastos (valores negativos)
             if (transaction.amount < 0) {
-              const category = transaction.localCategory || "Outros"
+              const category = transaction.localCategory || transaction.category || "Outros"
               const amount = Math.abs(transaction.amount)
               categoryTotals[category] = (categoryTotals[category] || 0) + amount
             }

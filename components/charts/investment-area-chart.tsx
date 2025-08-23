@@ -1,17 +1,76 @@
 "use client"
 
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-const data = [
-  { month: "Set", stocks: 8500, funds: 2300, fixedIncome: 1800 },
-  { month: "Out", stocks: 9200, funds: 2400, fixedIncome: 1900 },
-  { month: "Nov", stocks: 8800, funds: 2600, fixedIncome: 2000 },
-  { month: "Dez", stocks: 10200, funds: 2800, fixedIncome: 2100 },
-  { month: "Jan", stocks: 9800, funds: 3000, fixedIncome: 2200 },
-]
+
+import { useEffect, useState } from "react"
+import investmentHistory from "@/lib/investment-history.json"
+import { writeFile } from "fs"
+
+interface InvestmentPoint {
+  month: string
+  stocks: number
+  funds: number
+  fixedIncome: number
+}
 
 export function InvestmentAreaChart() {
+
+  const [data, setData] = useState<InvestmentPoint[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function fetchInvestmentEvolution() {
+      setLoading(true)
+      try {
+        // 1. Carregar histórico manual
+        let manualHistory: InvestmentPoint[] = []
+        try {
+          manualHistory = Array.isArray(investmentHistory) ? investmentHistory : []
+        } catch { manualHistory = [] }
+
+        // 2. Buscar saldo atual dos investimentos
+        const response = await fetch(`/api/investments`)
+        const investments = await response.json()
+        let current: InvestmentPoint = { month: '', stocks: 0, funds: 0, fixedIncome: 0 }
+        const now = new Date()
+        const currentMonth = `${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear().toString().slice(2)}`
+        if (Array.isArray(investments)) {
+          investments.forEach((inv: any) => {
+            if (inv.type === 'STOCK' || inv.type === 'stock') current.stocks += inv.balance || inv.value || 0
+            else if (inv.type === 'FUND' || inv.type === 'fund') current.funds += inv.balance || inv.value || 0
+            else current.fixedIncome += inv.balance || inv.value || 0
+          })
+        }
+        current.month = currentMonth
+
+        // 3. Registrar snapshot automático no início do mês (simulação client-side)
+        // Em produção, isso deveria ser feito via backend agendado
+        let autoHistory: InvestmentPoint[] = []
+        if (manualHistory.length > 0) {
+          // Pega o último mês do histórico manual
+          const lastManual = manualHistory[manualHistory.length - 1]
+          // Se já existe registro do mês atual, não duplica
+          if (!manualHistory.find(h => h.month === currentMonth)) {
+            autoHistory = [...manualHistory, current]
+          } else {
+            autoHistory = [...manualHistory.filter(h => h.month !== currentMonth), current]
+          }
+        } else {
+          autoHistory = [current]
+        }
+
+        setData(autoHistory)
+      } catch (e) {
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchInvestmentEvolution()
+  }, [])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -47,21 +106,7 @@ export function InvestmentAreaChart() {
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorStocks" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="colorFunds" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0.1} />
-                </linearGradient>
-                <linearGradient id="colorFixed" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(var(--chart-4))" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="hsl(var(--chart-4))" stopOpacity={0.1} />
-                </linearGradient>
-              </defs>
+            <BarChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <XAxis
                 dataKey="month"
                 stroke="hsl(var(--muted-foreground))"
@@ -78,31 +123,10 @@ export function InvestmentAreaChart() {
               />
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="fixedIncome"
-                stackId="1"
-                stroke="hsl(var(--chart-4))"
-                fill="url(#colorFixed)"
-                name="Renda Fixa"
-              />
-              <Area
-                type="monotone"
-                dataKey="funds"
-                stackId="1"
-                stroke="hsl(var(--chart-2))"
-                fill="url(#colorFunds)"
-                name="Fundos"
-              />
-              <Area
-                type="monotone"
-                dataKey="stocks"
-                stackId="1"
-                stroke="hsl(var(--chart-1))"
-                fill="url(#colorStocks)"
-                name="Ações"
-              />
-            </AreaChart>
+              <Bar dataKey="fixedIncome" stackId="a" fill="hsl(var(--chart-4))" name="Renda Fixa" />
+              <Bar dataKey="funds" stackId="a" fill="hsl(var(--chart-2))" name="Fundos" />
+              <Bar dataKey="stocks" stackId="a" fill="hsl(var(--chart-1))" name="Ações" />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
