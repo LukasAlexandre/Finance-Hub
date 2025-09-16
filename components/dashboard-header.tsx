@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Bell, Settings } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function DashboardHeader() {
   return (
@@ -8,10 +9,11 @@ export function DashboardHeader() {
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h1 className="text-2xl font-bold text-primary font-serif">FinanceHub</h1>
-          <div className="hidden md:block text-sm text-muted-foreground">Conectado ao Nubank via Pluggy</div>
+          <div className="hidden md:block text-sm text-muted-foreground">Painel Financeiro Pessoal</div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <ThemeToggle />
           <Button variant="ghost" size="icon">
             <Bell className="h-5 w-5" />
           </Button>
